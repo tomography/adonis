@@ -49,4 +49,65 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-__version__ = 0.1.0
+import numpy as np
+import censor.common.constants as const
+import censor.handler as handler
+from multiprocessing import Queue, Process
+
+__author__ = "Barbara Frosik"
+__copyright__ = "Copyright (c), UChicago Argonne, LLC."
+__docformat__ = 'restructuredtext en'
+__all__ = ['replace_negative',
+           'replace_nan',
+           'to_type',
+           'replace']
+
+fix_mapper = {
+               1 : 'negative',
+               2 : 'nan',
+               3 : 'type' 
+             } 
+
+def replace_negative(arr, value):
+    arr[arr < 0] = value
+    return arr
+
+def replace_nan(arr, value):
+    arr[np.isnan(arr)] = value
+    return arr
+
+def to_type(arr, type):
+    return arr.astype(type)
+
+
+function_mapper = { const.REPLACE_NEGATIVE : replace_negative,
+                    const.REPLACE_NAN : replace_nan,
+                    const.TO_TYPE : to_type
+                   }
+
+def replace(logger, fixers, arr, data_tag):
+    """
+    This method provides data repair.
+
+    It runs all the repair functions included in fixers dictionary.
+
+    Parameters
+    logger : logger instance
+        logger used to log events
+    fixers : dict
+        contains functions ids as keys, and corresponding tuple of parameters as value
+    arr : ndarray
+        repaired array
+    data_tag : str
+        string identifying the data
+    Returns
+    -------
+    none
+    """
+    for fix in sorted(fixers):
+        if fix < 100:
+            arr = function_mapper[fix](arr, fixers[fix])
+            logger.info(data_tag + ' repaired ' + fix_mapper[fix] )
+    return arr
+
+

@@ -46,6 +46,108 @@
 # POSSIBILITY OF SUCH DAMAGE.                                             #
 # #########################################################################
 
+"""
+This file is a suite of verification functions for scientific data.
+"""
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
+import numpy as np
+import censor.common.constants as const
+import censor.common.containers as ct
+
+__author__ = "Barbara Frosik"
+__copyright__ = "Copyright (c), UChicago Argonne, LLC."
+__docformat__ = 'restructuredtext en'
+__all__ = ['sat_in_range',
+           'mean_in_range',
+           'mean_in_range']
+
+
+def sat_in_range(arr, args):
+    """
+    This method validates saturation. The arguments are positional.
+
+    It calculates number of saturated points. Point is saturated if it's intensity is greater
+    than given value (args[0]). If the number of saturated points exceeds limit, given as args[1],
+    the frame is saturated.
+
+    Parameters
+    ----------
+    arr : 2D array
+        a frame
+    args : tuple
+        a tuple containing positional arguments
+    Returns
+    -------
+    result
+    """
+    # find number of saturated pixels, args[0] is the pixel saturation limit
+    sat_pixels = (arr > args[0]).sum()
+    # args[1] is a limit of saturated pixels
+    res = sat_pixels < args[1]
+    result = ct.Result(res, 'saturation_in_range')
+    return result
+
+
+def mean_in_range(arr, args):
+    """
+    This method validates mean value. The arguments are positional.
+
+    It calculates mean value of the frame and checks if the value is within limits, given as args.
+
+    Parameters
+    ----------
+    arr : 2D array
+        a frame
+    args : tuple
+        a tuple containing positional arguments
+    Returns
+    -------
+    result
+    """
+    mn = np.mean(arr)
+    res = mn > args[0] and mn < args[1]
+    return ct.Result(res, 'mean_in_range')
+
+
+# maps the quality check ID to the function object
+function_mapper = {
+                     const.MEAN_IN_RANGE : mean_in_range,
+                     const.SAT_IN_RANGE : sat_in_range
+                   }
+
+
+def process_frame(data, index, resultsq, functions):
+    """
+    This method dispatches validation/repair functions that are included in the functions dictionary.
+
+    It calls a function defined in the functions dictionary, using the dictionary value as an argument.
+    The Results objects returned by each function are encapsulated in Results object and enqueued in a
+    results queue.
+
+    Parameters
+    ----------
+    data : 2D array
+        a frame
+    index : int
+        a frame index
+    resultsq : queue
+        a queue that will deliver results to parent process
+    functions : dict
+        a dictionary containing functins ids, and tuple values, the tuple containing positional arguments.
+    Returns
+    -------
+    none
+    """
+    results_list = []
+    failed = False
+    for function_id in functions:
+        function = function_mapper[function_id]
+        result = function(data.slice, functions[function_id])
+        results_list.append(result)
+        if result.res != 0:
+            failed = True
+
+    results = ct.Results(index, failed, results_list)
+    resultsq.put(results)
