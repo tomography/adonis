@@ -1,8 +1,8 @@
 ======
-Adonis
+Censor
 ======
 
-Adonis is a unit-testing library for scientific data. 
+Censor is a unit-testing library for scientific data. 
 
 
 Features
