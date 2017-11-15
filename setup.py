@@ -4,7 +4,7 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='adonis',
+    name='censor',
     author='Barbara Frosnik, Doga Gursoy',
     packages=find_packages(),
     version=open('VERSION').read().strip(),
