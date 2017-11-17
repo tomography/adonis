@@ -48,6 +48,8 @@
 
 """
 This file is a suite of verification functions for scientific data.
+
+It is assumed that the evaluated data is 2D shape.
 """
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
@@ -80,7 +82,7 @@ def sat_in_range(arr, args):
         a tuple containing positional arguments
     Returns
     -------
-    result
+        result : object
     """
     # find number of saturated pixels, args[0] is the pixel saturation limit
     sat_pixels = (arr > args[0]).sum()
@@ -104,7 +106,7 @@ def mean_in_range(arr, args):
         a tuple containing positional arguments
     Returns
     -------
-    result
+        result : object
     """
     mn = np.mean(arr)
     res = mn > args[0] and mn < args[1]
@@ -138,7 +140,7 @@ def process_frame(data, index, resultsq, functions):
         a dictionary containing functins ids, and tuple values, the tuple containing positional arguments.
     Returns
     -------
-    none
+        none
     """
     results_list = []
     failed = False
@@ -146,8 +148,10 @@ def process_frame(data, index, resultsq, functions):
         function = function_mapper[function_id]
         result = function(data.slice, functions[function_id])
         results_list.append(result)
-        if result.res != 0:
+        if not result.res:
             failed = True
 
     results = ct.Results(index, failed, results_list)
     resultsq.put(results)
+
+

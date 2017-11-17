@@ -49,3 +49,49 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
+
+
+import logging
+import numpy as np
+import censor.common.constants as const
+import censor.repairs as rp
+
+
+arr_2D = np.array([[1, 2, 3], [np.log(-1.), -5, -7]])
+arr_3D = np.array([[[1, 2, 3], [np.log(-1.), -5, -7]],[[1, 2, 3], [4, 5, 6]],
+[[1, 2, 3], [4, 5, 6]], [[1, 2, 3], [4, 5, 6]]])
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+logfile = 'test.log'
+handler = logging.FileHandler(logfile)
+handler.setLevel(logging.INFO)
+logger.addHandler(handler)
+
+data_tag = 'test'
+
+
+def test_replace_negative():
+    fixers = {const.REPLACE_NEGATIVE:(0)}
+    arr = rp.replace(arr_3D, fixers, data_tag, logger)
+    assert not ((arr < 0).any())
+    arr = rp.replace(arr_2D, fixers, data_tag, logger)
+    assert not ((arr < 0).any())
+
+
+def test_replace_nan():
+    fixers = {const.REPLACE_NAN: (0)}
+    arr = rp.replace(arr_3D, fixers, data_tag, logger)
+    assert not (np.isnan(arr).any())
+    arr = rp.replace(arr_2D, fixers, data_tag, logger)
+    assert not (np.isnan(arr).any())
+
+
+def test_to_type():
+    fixers = {const.TO_TYPE:(np.dtype(np.cfloat))}
+    arr = rp.replace(arr_3D, fixers, data_tag, logger)
+    assert arr.dtype is np.dtype(np.cfloat)
+    arr = rp.replace(arr_2D, fixers, data_tag, logger)
+    assert arr.dtype is np.dtype(np.cfloat)
+
+

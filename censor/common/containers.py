@@ -57,6 +57,11 @@ __docformat__ = 'restructuredtext en'
 class Data:
     """
     This class is a data container.
+
+    The Data container is used to pack data frames that are delivered to another process.
+    If all frames are enqueued, the providing process communicates the end by enqueuing
+    data with the status "DATA_STATUS_END".
+    The status is "DATA_STATUS_DATA" for data containing frame.
     """
     DATA_STATUS_DATA = 0
     DATA_STATUS_END = 2
@@ -114,5 +119,6 @@ class Aggregate:
             ver_id = result.ver_id
             logger.info(self.data_tag + ' evaluated frame #' + str(rs.index) + ' ' +
                         ver_id + ' with result ' + str(res))
+
 
 
