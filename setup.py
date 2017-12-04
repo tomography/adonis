@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='censor',
-    author='Barbara Frosnik, Doga Gursoy',
+    author='Barbara Frosik, Doga Gursoy',
     packages=find_packages(),
     version=open('VERSION').read().strip(),
     description = 'Unit-testing for scientific data.',
