@@ -1,0 +1,16 @@
+# .coveragerc to control coverage.py
+[run]
+source=censor
+[report]
+omit =
+    */python?.?/*
+    */site-packages/nose/*
+    *test*
+    *__init__.py*
+    *setup.py*
+   
+exclude_lines =
+    def set_default
+
+[html]
+directory = coverage_html_report
