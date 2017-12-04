@@ -50,11 +50,12 @@
 This file handles verification and repair frame by frame.
 """
 
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
+#from __future__ import (absolute_import, division, print_function,
+#                        unicode_literals)
+
 from multiprocessing import Queue, Process
 import sys
-import censor.frame_func as framer
+import censor.frame as framer
 import censor.common.containers as ct
 if sys.version[0] == '2':
     import Queue as queue
@@ -67,7 +68,7 @@ __docformat__ = 'restructuredtext en'
 __all__ = ['handle_data']
 
 
-def handle_data(logger, dataq, checks, data_tag):
+def handle_data(dataq, checks, returnq, data_tag, logger):
     """
     This method validates and repairs data applying checks and repairs functions.
 
@@ -76,23 +77,26 @@ def handle_data(logger, dataq, checks, data_tag):
 
     Parameters
     ----------
-    logger : logger instance
-        logger used to log events
     dataq : Queue
         multiprocessing queue delivering data slice by slice
     checks : dictionary
         a dictionary containing methods ids that will be applied to validate/repair each frame
+    returnq : Queue
+        multiprocessing queue used to transfer final result to the parent process
     data_tag : string
         a string associated with the data, used when logging events
+    logger : logger instance
+        logger used to log events
     Returns
     -------
-    none
+        none
     """
     aggregate = ct.Aggregate(logger, data_tag)
     resultsq = Queue()
     interrupted = False
     index = 0
     num_processes = 0
+    verified = True
     while not interrupted:
         try:
             data = dataq.get(timeout=0.001)
@@ -100,6 +104,8 @@ def handle_data(logger, dataq, checks, data_tag):
                 interrupted = True
                 while num_processes > 0:
                     results = resultsq.get()
+                    if results.failed:
+                        verified = False
                     aggregate.handle_results(logger, results)
                     num_processes -= 1
             elif data.status == ct.Data.DATA_STATUS_DATA:
@@ -114,6 +120,11 @@ def handle_data(logger, dataq, checks, data_tag):
 
         while not resultsq.empty():
             results = resultsq.get_nowait()
+            if results.failed:
+                verified = False
             aggregate.handle_results(logger, results)
             num_processes -= 1
+
+    returnq.put(verified)
+
 

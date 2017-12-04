@@ -49,3 +49,278 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
+
+import logging
+import numpy as np
+import os
+import censor.common.constants as const
+import censor.checks as ck
+
+
+arr_2D = np.array([[1, 2, 3], [np.log(-1.), -5, -7]])
+arr_3D = np.array([[[1, 2, 3], [np.log(-1.), -5, -7]],[[1, 2, 3], [4, 5, 6]],
+[[1, 2, 3], [4, 5, 6]], [[1, 2, 3], [4, 5, 6]]])
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+logfile = 'test.log'
+handler = logging.FileHandler(logfile)
+handler.setLevel(logging.INFO)
+logger.addHandler(handler)
+
+data_tag = 'test'
+
+
+def is_text_in_file(file, text):
+    return text in open(file).read()
+    file.close()
+
+
+def test_nparray():
+    checks = {const.IS_NPARRAY: ()}
+    verified = ck.check(arr_2D, checks, data_tag, logger)
+    assert verified
+
+
+def test_no_nparra():
+    checks = {const.IS_NPARRAY: ()}
+    verified = ck.check('a', checks, data_tag, logger)
+    assert not verified
+
+
+def test_no_negative():
+    checks = {const.HAS_NO_NEGATIVE: ()}
+    arr = arr_2D.copy()
+    arr[arr < 0] = 0
+    verified = ck.check(arr, checks, data_tag, logger)
+    assert verified
+
+
+def test_has_negative():
+    checks = {const.HAS_NO_NEGATIVE: ()}
+    verified = ck.check(arr_3D, checks, data_tag, logger)
+    assert not verified
+
+
+def test_no_nans():
+    checks = {const.HAS_NO_NAN: ()}
+    arr = arr_3D.copy()
+    arr[np.isnan(arr)] = 0
+    verified = ck.check(arr, checks, data_tag, logger)
+    assert verified
+
+
+def test_has_nans():
+    checks = {const.HAS_NO_NAN: ()}
+    verified = ck.check(arr_3D, checks, data_tag, logger)
+    assert not verified
+
+
+def test_is_int():
+    checks = {const.IS_INT: ()}
+    arr = arr_3D.copy()
+    arr[np.isnan(arr)] = 0
+    arr = arr.astype(int)
+    verified = ck.check(arr, checks, data_tag, logger)
+    assert verified
+
+
+def test_no_int():
+    checks = {const.IS_INT: ()}
+    arr = arr_3D.copy()
+    arr[np.isnan(arr)] = 0
+    arr = arr.astype(np.dtype(np.float))
+    verified = ck.check(arr, checks, data_tag, logger)
+    assert not verified
+
+
+def test_is_float():
+    checks = {const.IS_FLOAT: ()}
+    arr = arr_3D.copy()
+    arr[np.isnan(arr)] = 0
+    arr = arr.astype(np.dtype(np.float))
+    verified = ck.check(arr, checks, data_tag, logger)
+    assert verified
+
+
+def test_no_float():
+    checks = {const.IS_FLOAT: ()}
+    arr = arr_3D.copy()
+    arr[np.isnan(arr)] = 0
+    arr = arr.astype(int)
+    verified = ck.check(arr, checks, data_tag, logger)
+    assert not verified
+
+
+def test_is_complex():
+    checks = {const.IS_COMPLEX: ()}
+    arr = arr_3D.copy()
+    arr[np.isnan(arr)] = 0
+    arr = arr.astype(np.dtype(np.complex))
+    verified = ck.check(arr, checks, data_tag, logger)
+    assert verified
+
+
+def test_no_complex():
+    checks = {const.IS_COMPLEX: ()}
+    arr = arr_3D.copy()
+    arr[np.isnan(arr)] = 0
+    verified = ck.check(arr, checks, data_tag, logger)
+    assert not verified
+
+
+def test_is_size():
+    checks = {const.IS_SIZE: (4,2,3)}
+    verified = ck.check(arr_3D, checks, data_tag, logger)
+    assert verified
+
+
+def test_no_size_dims():
+    checks = {const.IS_SIZE: arr_3D.shape}
+    verified = ck.check(arr_2D, checks, data_tag, logger)
+    assert not verified
+
+
+def test_no_size_shape():
+    checks = {const.IS_SIZE: (9,10)}
+    verified = ck.check(arr_2D, checks, data_tag, logger)
+    assert not verified
+
+
+def test_is_sat_in_range():
+    checks = {const.SAT_IN_RANGE:(1, 17)}
+    arr = arr_2D.copy()
+    arr[np.isnan(arr)] = 0
+    arr[arr < 0] = 0
+    verified = ck.check(arr, checks, data_tag, logger)
+    assert verified
+
+
+def test_no_sat_no_in_range():
+    checks = {const.SAT_IN_RANGE:(1, 2)}
+    arr = arr_3D.copy()
+    arr[np.isnan(arr)] = 0
+    arr[arr < 0] = 0
+    verified = ck.check(arr, checks, data_tag, logger)
+    assert not verified
+
+
+def test_is_mean_in_range():
+    checks = {const.MEAN_IN_RANGE:(0, 7)}
+    arr = arr_2D.copy()
+    arr[np.isnan(arr)] = 0
+    arr[arr < 0] = 0
+    verified = ck.check(arr, checks, data_tag, logger)
+    assert verified
+
+
+def test_no_mean_no_in_range():
+    checks = {const.MEAN_IN_RANGE:(100, 107)}
+    arr = arr_3D.copy()
+    arr[np.isnan(arr)] = 0
+    arr[arr < 0] = 0
+    verified = ck.check(arr, checks, data_tag, logger)
+    assert not verified
+
+
+def test_logger():
+    checks = {const.IS_NPARRAY: ()}
+    verified = ck.check(arr_2D, checks, data_tag, logger)
+    assert verified
+    assert is_text_in_file(logfile, data_tag+' evaluated "is array" with result True')
+
+
+def test_no_logger():
+    checks = {const.IS_NPARRAY: ()}
+    verified = ck.check(arr_2D, checks, data_tag)
+    assert verified
+    assert is_text_in_file('default.log', data_tag+' evaluated "is array" with result True')
+
+
+def test_no_tag():
+    open('default.log', 'w').close()
+    checks = {const.IS_NPARRAY: ()}
+    verified = ck.check(arr_2D, checks)
+    assert verified
+    assert is_text_in_file('default.log', 'mydata'+' evaluated "is array" with result True')
+    os.remove('default.log')
+
+
+def test_2D():
+    open(logfile, 'w').close()
+    checks = {const.MEAN_IN_RANGE: (0, 7)}
+    arr = arr_2D.copy()
+    arr[np.isnan(arr)] = 0
+    arr[arr < 0] = 0
+    verified = ck.check(arr, checks, data_tag, logger)
+    assert verified
+    assert is_text_in_file(logfile, data_tag+' evaluated frame #0 mean_in_range with result True')
+    assert not is_text_in_file(logfile, 'frame #1')
+
+
+def test_3D_no_axis():
+    open(logfile, 'w').close()
+    checks = {const.MEAN_IN_RANGE: (0, 7)}
+    arr = arr_2D.copy()
+    arr[np.isnan(arr)] = 0
+    arr[arr < 0] = 0
+    verified = ck.check(arr, checks, data_tag, logger)
+    assert verified
+    assert is_text_in_file(logfile, data_tag + ' evaluated frame #0 mean_in_range with result True')
+    assert not is_text_in_file(logfile, 'frame #1')
+
+
+def test_3D_no_axis():
+    open(logfile, 'w').close()
+    checks = {const.MEAN_IN_RANGE: (0, 7)}
+    arr = arr_3D.copy()
+    arr[np.isnan(arr)] = 0
+    arr[arr < 0] = 0
+    ck.check(arr, checks, data_tag, logger)
+    assert is_text_in_file(logfile, 'frame #0')
+    assert is_text_in_file(logfile, 'frame #1')
+    assert is_text_in_file(logfile, 'frame #2')
+    assert is_text_in_file(logfile, 'frame #3')
+    assert not is_text_in_file(logfile, 'frame #4')
+
+
+def test_3D_axis0():
+    open(logfile, 'w').close()
+    checks = {const.MEAN_IN_RANGE: (0, 7)}
+    arr = arr_3D.copy()
+    arr[np.isnan(arr)] = 0
+    arr[arr < 0] = 0
+    ck.check(arr, checks, data_tag, logger, 0)
+    assert is_text_in_file(logfile, 'frame #0')
+    assert is_text_in_file(logfile, 'frame #1')
+    assert is_text_in_file(logfile, 'frame #2')
+    assert is_text_in_file(logfile, 'frame #3')
+    assert not is_text_in_file(logfile, 'frame #4')
+
+
+def test_3D_axis1():
+    open(logfile, 'w').close()
+    checks = {const.MEAN_IN_RANGE: (0, 7)}
+    arr = arr_3D.copy()
+    arr[np.isnan(arr)] = 0
+    arr[arr < 0] = 0
+    ck.check(arr, checks, data_tag, logger, 1)
+    assert is_text_in_file(logfile, 'frame #0')
+    assert is_text_in_file(logfile, 'frame #1')
+    assert not is_text_in_file(logfile, 'frame #2')
+
+
+def test_3D_axis2():
+    open(logfile, 'w').close()
+    checks = {const.MEAN_IN_RANGE: (0, 7)}
+    arr = arr_3D.copy()
+    arr[np.isnan(arr)] = 0
+    arr[arr < 0] = 0
+    ck.check(arr, checks, data_tag, logger, 2)
+    assert is_text_in_file(logfile, 'frame #0')
+    assert is_text_in_file(logfile, 'frame #1')
+    assert is_text_in_file(logfile, 'frame #2')
+    assert not is_text_in_file(logfile, 'frame #3')
+    os.remove(logfile)
+
+

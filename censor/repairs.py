@@ -46,13 +46,19 @@
 # POSSIBILITY OF SUCH DAMAGE.                                             #
 # #########################################################################
 
+"""
+This module corrects array's content.
+
+It contains set of functions, each function correcting certain characteristic.
+Caller will use "replace" interface to start the correction, and will provide
+list of functions to apply.
+"""
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 import numpy as np
 import censor.common.constants as const
-import censor.handler as handler
-from multiprocessing import Queue, Process
+import logging
 
 __author__ = "Barbara Frosik"
 __copyright__ = "Copyright (c), UChicago Argonne, LLC."
@@ -69,14 +75,58 @@ fix_mapper = {
              } 
 
 def replace_negative(arr, value):
+    """
+    This function replaces negative values in array arr with the given value.
+
+    Parameters
+    ----------
+    arr : ndarray
+        repaired array
+    value : the type of array
+        replacement value
+    Returns
+    -------
+    arr : ndarray
+        corrected array
+    """
     arr[arr < 0] = value
     return arr
 
+
 def replace_nan(arr, value):
+    """
+    This function replaces nan values (not a number) in array arr with the given value.
+
+    Parameters
+    ----------
+    arr : ndarray
+        repaired array
+    value : the type of array
+        replacement value
+    Returns
+    -------
+    arr : ndarray
+        corrected array
+    """
     arr[np.isnan(arr)] = value
     return arr
 
+
 def to_type(arr, type):
+    """
+    This function changes the type of elements in array to the given type.
+
+    Parameters
+    ----------
+    arr : ndarray
+        repaired array
+    type : numpy.dtype
+        new type
+    Returns
+    -------
+    arr : ndarray
+        corrected array
+    """
     return arr.astype(type)
 
 
@@ -85,29 +135,45 @@ function_mapper = { const.REPLACE_NEGATIVE : replace_negative,
                     const.TO_TYPE : to_type
                    }
 
-def replace(logger, fixers, arr, data_tag):
-    """
-    This method provides data repair.
 
-    It runs all the repair functions included in fixers dictionary.
+def replace(arr, fixers, data_tag='mydata', logger=None):
+    """
+    This function provides data repair.
+
+    It runs all the repair functions included in "fixers" dictionary. Each function
+    is identified by integer ID, arbitrary defined.
+    The "fixers" dictionary's keys are the functions IDs, and the values are
+    corresponding arguments grouped in tuple. Fixers dictionary example:
+    fixers = {const.REPLACE_NEGATIVE:(0), const.REPLACE_NAN:(0), const.TO_TYPE:(np.dtype(np.float))}
 
     Parameters
-    logger : logger instance
-        logger used to log events
-    fixers : dict
-        contains functions ids as keys, and corresponding tuple of parameters as value
+    ----------
     arr : ndarray
         repaired array
+    fixers : dict
+        contains functions ids as keys, and corresponding tuple of parameters as value
     data_tag : str
         string identifying the data
+    logger : logger instance
+        logger used to log events
     Returns
     -------
-    none
+    arr : ndarray
+        corrected array
     """
+    # if logger not provided, create default
+    if logger is None:
+        logger = logging.getLogger(__name__)
+        logger.setLevel(logging.INFO)
+        handler = logging.FileHandler('default.log')
+        handler.setLevel(logging.INFO)
+        logger.addHandler(handler)
+
     for fix in sorted(fixers):
         if fix < 100:
             arr = function_mapper[fix](arr, fixers[fix])
             logger.info(data_tag + ' repaired ' + fix_mapper[fix] )
     return arr
+
 
 
