@@ -1,0 +1,356 @@
+- Define metadata descriptions to be written in file/log
+- Define a report template for quality checks
+- Write installation docs and provide to multiple users for feedback
+- Explain the scope and how users can make quality checks based on their needs
+- Write a tutorial for batch and stream quality checks
+
+There are two projects that provide quality check of the data: data-quality and censor.
+The data-quality (https://github.com/advancedPhotonSource/data-quality) offers several solutions, such as
+- verification of data file (“data” verifier)
+- discovery of new files on the file system and verification of the files (“monitor” verifier)
+- stream quality checks (“real-time”)
+
+The censor (https://github.com/tomography/censor) offers the following capabilities:
+- check of data files
+- repair of data files
+
+The document below relates to both of the projects, with main focus on the censor and “real-time” verifier of data-quality.
+1 Feedback
+
+The “data”, “monitor” and “real time” verifiers evaluate data file(s) and provide instant feedback via console (‘console’), 
+logging (‘log’), and EPICS process variables (‘pv’).
+
+1.1 Console Feedback
+The console feedback will be commonly used when running the different types of verifiers. The failure of the quality check 
+on frame is displayed on the console. Format of the message is as follows:
+failed frame FRAME_INDEX result of QUALITY_CHECK is RESULT
+where FRAME_INDEX is the index of failed frame
+QUALITY_CHECK is the name of quality function 
+RESULT is a calculated result by the quality function
+
+Below is an example of console feedback:
+failed frame 7 result of standard dev is 0.75
+
+1.2 Logging
+User can configure to receive feedback in log file. In addition to the error message the log entry starts with time and date. 
+The format of the log message after date is identical to the console message.
+
+Below is an example of log feedback:
+2017 12 12 8:23:12 failed frame 7 result of standard dev is 0.75
+
+1.3 PV Feedback
+The feedback through PVs will be used when running real time verification. It is not recommended to configure pv feedback 
+when evaluating file(s) on the disk using data or monitor verifiers.
+
+The feedback pv can be defined in various way depending on the use case.
+The following table lists pv types and usage:
+
+PV name
+description
+Use case
+DET:QC_ctr
+Example: 
+Pilatus:mean_ctr
+Keeps track of number of frames that did not pass quality check 
+Experiment data may still be usable if the number of failing frames is below threshold
+DET:QC_ind
+Example: 
+Pilatus:mean_ind
+Displays the last index of frame that failed this quality check
+Provides instant information about failing frames 
+DET:QC_res
+Example: 
+Pilatus:mean_res
+Displays binary accumulated result of this quality check, i.e. if any frame failed
+Can be used to stop experiment if all frames must pass this quality check
+DET:quality
+Example: 
+Pilatus:quality
+Displays binary accumulated result of all quality checks, i.e. if any frame failed
+Can be used to stop experiment if all frames must pass all quality checks
+
+The feedback via process variable can be observed on MEDM console or Qt screen.
+
+Note: The Qt display is not implemented yet.
+2 Report Files
+
+The “data”, “monitor” and “real_time” verifiers evaluate data file(s) and in addition to instant feedback via console or logging,
+report the results in report files.
+The report level is configurable. These are supported levels:
+None: there is no report
+Errors: only frames that did not pass quality check are reported
+Full: all frames with all quality check results are reported
+
+2.1 Errors Only Report
+The “errors” report file starts with name of the data file that was evaluated. In the case of “monitor” verifier, the report file
+will have multiple sections, each starting with data file name.
+The verifier may be configured to evaluate different types of data (i.e. data white, data dark, data).  After the data file name 
+the report will list data type followed by a list of failed frame numbers along with the quality check that failed and the value.
+Below is an example of the “errors” type report.
+
+Errors Report:
+Test_0001.hdf
+Data white:
+Frame Index             quality check               result
+5                        mean                        56.89
+6                        mean                        49.08
+10                       standard dev               144.9
+15                       mean delta                  36.9
+Data Dark:
+Frame Index             quality check               result
+0                        mean                        1109.90
+1                        mean                        1212.8
+Data:
+Frame Index             quality check               result
+5                        standard dev               209.9
+6                        mean                       2987.78
+17                       mean delta                 187.76
+
+Note: the example format above is up for discussion, not implemented yet.
+
+The above example would be generated by “data” verifier when evaluating only one file or by real_time verifier.
+The report generated by “monitor” verifier will have multiple sections as above example, one for each evaluated file.
+
+2.2 Full Report
+The “full” report will start with the name of the data file that was evaluated. Each of the sections by data type will show 
+list of failed frames, similar to the “error” report followed by evaluated frames. The evaluated frames are listed along all 
+quality checks that were applied and thir results.
+Below is an example of the “full” report.
+
+Full Report:
+Test_0001.hdf
+
+Data white:
+Failed Frames:
+Frame Index              quality check               result
+5                        mean                        56.89
+6                        mean                        49.08
+10                       standard dev               144.9
+15                       mean delta                  36.9
+evaluated frames:
+Frame Index              mean      standard dev      mean delta
+0                         969.0      26.8             20.8
+1                         935.0      23.4              1.3
+3                         989.45     23.5             11.8
+4                         889.67     27.8             21.7
+7                         645.3      33.8             23.8
+12                        999.7      37.5             14.3
+13                        956.3      29.8             17.8
+14                        978.0      26.0             23.8
+16                        998.7      30.8             21.9
+17                        934.0      27.0             11.8
+
+Data Dark:
+Failed Frames:
+Frame Index             quality check               result
+0                        mean                       1109.90
+1                        mean                       1212.8
+evaluated frames:
+Frame Index               mean      standard dev      mean delta
+2                         25.0         6.8            2.8
+3                         13.0         3.4            1.3
+4                         23.5         3.5            11.8
+5                         13.5         7.8            21.6
+6                         25.3         3.8            13.8
+
+Data:
+Failed Frames:
+Frame Index             quality check               result
+5                        standard dev               209.9
+6                        mean                       2987.78
+17                       mean delta                 187.76
+evaluated frames:
+Frame Index                mean      standard dev      mean delta
+0                         969.0      26.8              20.8
+1                         935.0      23.4               1.3
+3                         989.45     23.5              11.8
+4                         889.67     27.8              21.7
+7                         645.3      33.8              23.8
+8                         645.3      33.8              23.8
+9                         645.3      33.8              23.8
+10                        645.3      33.8              23.8
+11                        645.3      33.8              23.8
+12                        999.7      37.5              14.3
+13                        956.3      29.8              17.8
+14                        978.0      26.0              23.8
+16                        998.7      30.8              21.9
+18                        934.0      27.0              11.8
+…….
+
+Note: the example format above is up for discussion, not implemented yet.
+
+The above example would be generated by “data” verifier when evaluating only one file or by a “real_time” verifier.
+The report generated by “monitor” verifier will have multiple sections as above example, one for each evaluated file.
+
+3 Installation
+
+The data-quality project has documentation webpage at: http://data-quality.readthedocs.io/en/latest/source/install.html
+Installation of the software is addressed there
+
+4 Quality Checks
+
+The data-quality product consists of verifier framework and suite of quality checks and corresponding limits definitions.
+A quality check is a function with defined signature that applies mathematical formula to data.
+There are three different types of quality checks, summarized in the table below.
+
+type
+signature
+Use case
+function checking entire array
+Parameters:
+- data array
+- *args
+Returns:
+- boolean result
+Used by batch verifier (censor). It checks basic sanity of the data: negative values, nans, data type, etc.
+function checking one frame
+Parameters:
+- data instance that includes slice 2D data
+- limits
+Returns:
+- result object
+Used to check characteristic of the frame of data, such as mean value, std deviation, saturation points
+Function checking result of one frame considering values of the previous frames
+Parameters:
+- limits
+- aggregate object that retains results of previous frames
+- frame checks results
+Returns:
+- result object
+Used to verify result based on already verified frames. Can be used to find statistical abnormality or total saturation.
+
+The frame quality check need corresponding limits. The calculated result of quality check should be between low limit and 
+high limit to pass the verification.
+Limits are typically defined in a json file that is configured with the 'limits' keyword in configuration file as the example 
+shows:
+'limits' = /local/data-quality/test/schemas/limits.json
+
+Below is an example of a limit file:
+
+{ “data” : {“mean” : {“low_limit” : 1000.0, “high_limit” : 2000.0},
+                  “std” : {“low_limit” : 10.0, “high_limit” : 20.0}},
+  “data_white” : {“mean” : {“low_limit” : 1900.0, “high_limit” : 2000.0},
+                  “stat_mean” : {“low_limit” : 30.0, “high_limit” : 80.0}}}                          
+                  
+In this example the “data” type may be checked with “mean” and “std” quality checks, and “data white” type may be checked with 
+“mean' and “stat_mean” quality checks, applying the corresponding limit values.
+ 
+The process of adding a quality check takes the following steps:
+a. In the constants.py file define quality ID. If the quality check is a function checking frame, the ID is less than STAT_START.
+Otherwise it is greater. Examples:
+QUALITYCHECK_MEAN = 1
+ACC_SAT = 101
+In the same file add the new quality check to mapper and update “to_string” function.
+
+b. In the qualitychecks.py file add the function with appropriate signature and update function_mapper. The function_mapper 
+maps the ID to the function that was created.
+
+v. In order to include this function in quality checks applied to the data, add the function ID literal name to the 
+quality_checks.json file. Below is an example of the file:
+{"data" : [ "QUALITYCHECK_MEAN", "QUALITYCHECK_STD", "STAT_MEAN"],
+  "data_dark": [ "QUALITYCHECK_MEAN"],
+  "data_white": [ "QUALITYCHECK_MEAN", "QUALITYCHECK_STD"]}
+In this example the “data” is verified with mean, standard deviation, and stat mean functions, “data_dark” is verified with 
+mean function, and “data_white” with mean and standard deviation.
+
+d. Add the limits for the added function in limit json file.
+5 How to use Tutorial
+
+5.1 Batch quality checks
+
+Batch verifier (censor project) supports the following checks:
+- if the data is numpy.ndarray
+- if the data has no negative values
+- if the data has no nans
+- if the data is integer, or float, or complex
+- if the array containing data has specified dimensions
+- it also has a framework to add functions checking frame by frame
+
+Each of the quality check has defined ID. To run the batch verifier the user must define which functions to run along with 
+function parameters in a dictionary form.
+
+Here is an example of such dictionary:
+checks_dir = {censor.common.constants.IS_NPARRAY:(),
+                 censor.common.constants.HAS_NO_NEGATIVE:(),
+                 censor.common.constants.HAS_NO_NAN:(), 
+                 censor.common.constants.IS_INT:(),
+                 censor.common.constants.IS_SIZE:(360, 1024, 1024) }
+The above defines functions evaluating array. Running verification needs only one line of code shown below:
+result = censor.checks.check(arr, checks_dir[data_tag, logger, axis])
+where arr is the evaluated data array and the checks_dir is the discussed above dictionary.
+The optional parameters are:
+data_tag – a string defining evaluated data, default is “mydata”
+logger – a logger used to log results, which is created when not given
+axis – an axis ordering frames, default is 0
+
+The result of running the batch verifier is a binary True/False, True if all checks passed, False otherwise.
+In addition to the result user will see result of each of the quality check in a log file.
+Here is an example of the log entry:
+mydata evaluated has_no_negative with result True
+
+In addition to verification censor has capability to correct the data.
+The repairs module supports the following corrections:
+- replaces negative values with given value
+- replaces nans with given value
+- changes type of data in the array
+
+Each of the repair has defined ID. To run the repair the user must define which functions to run, along with function 
+parameters in a dictionary form.
+
+Here is an example of such dictionary:
+fixers_dir = {censor.common.constants.REPLACE_NEGATIVE:(0),
+                      censor.common.constants.REPLACE_NAN: (0),
+                      censor.common.constants.TO_TYPE:(np.dtype(np.cfloat))}
+The above defines functions repairing array. Running repairs needs only one line of code shown below:
+arr = censor.repairs.replace(arr, fixers_dir, [data_tag, logger])
+where arr is the evaluated data array and the fixers_dir is the discussed above dictionary.
+The optional parameters are:
+data_tag – a string defining evaluated data, default is “mydata”
+logger – a logger used to log results, which is created when not given
+
+The result of running the repairs is a new repaired array.  
+
+5.2 Stream Quality Check
+
+The real-time verifier is supported by EPICS platform. Therefore information about process variables is needed and is 
+configured in a configuration file.
+
+The configuration file is a parameter to the command starting the stream verification. It can be any name and reside at 
+any directory however it is recommended that the configuration file name is “dqconfig.ini”, and resides in 
+directory ~/.dquality/INSTRUMENT, where INSTRUMENT is an arbitrary name of the directory indicating some environment, such 
+as detector. The data-quality project provides several examples that use the configuration file in the before mentioned 
+structure.
+
+The configuration file for the real-time verifier should have the following key words:
+- quality_checks – a json file name including absolute path that defines quality check functions that will be used 
+- limits - a json file name including absolute path that defines limits values to apply to by the quality check functions
+- feedback_type – real-time feedback, can be console, log or pv
+- detector – detector name used by EPICS pv
+- detector_basic – EPICS pv name for the detector basic 
+- detector_image – EPICS pv name for the detector image
+- no_frames – number of frames that will be evaluated, or negative value if run indefinitely
+
+Below is an example of a configuration file:
+'quality_checks' = /home/beams/USR32IDC/.dquality/pilatus/schemas/quality_checks.json
+'limits' = /home/beams/USR32IDC/.dquality/pilatus/schemas/limits.json
+'feedback_type' = console, log, pv
+'detector' = PT1
+'detector_basic' = cam1
+'detector_image' = image1
+'no_frames' = 20
+
+The stream quality check can be run directly or via realtime_check script.
+a. running directly
+dquality.check_rt.realtime(conf, [report_file, sequence])
+where the conf is the configuration file name. The optional parameters are:
+b. running via realtime_check script:
+python realtime_check.py INSTRUMENT [report_file sequence])
+where the INSTRUMENT is the directory name under ~/.dquality/ with the configuration file named “dquality.ini”.
+
+The optional parameters are:
+report_file – name of report file if wanted, there is no file report if not set
+sequence – a sequence of expected data types
+
+If the feedback configuration contains pv, the verifier will launch feedback process variables for  each quality check configured.
+To observe the quality feedback pvs the user is responsible for starting the display which is either MEDM screen or qT console.
+
