@@ -21,7 +21,7 @@ before_install:
   - conda update conda
 
 install:
-  - conda install python=$TRAVIS_PYTHON_VERSION numpy pytz
+  - conda install python=$TRAVIS_PYTHON_VERSION numpy nose pytz
   #- pip install pytest pytest-cov
   #- pip install codecov
   - conda info -a
