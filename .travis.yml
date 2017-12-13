@@ -3,7 +3,7 @@ sudo: false
 
 python:
   - "2.7"
-  #- "3.4"
+  - "3.4"
   - "3.5"
 
 env:
@@ -22,14 +22,13 @@ before_install:
 
 install:
   - conda install python=$TRAVIS_PYTHON_VERSION numpy nose pytz
-  #- pip install pytest pytest-cov
+  - pip install pytest
   #- pip install codecov
   - conda info -a
   - python setup.py build_ext --inplace
 
 script: 
-  - echo foo
- # - py.test --cov=./
+  - py.test
   
 #after_success:
 #    - codecov
