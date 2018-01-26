@@ -60,7 +60,6 @@ from __future__ import (absolute_import, division, print_function,
 import numpy as np
 from multiprocessing import Queue, Process
 import logging
-import censor.common.constants as const
 import censor.handler as handler
 import censor.common.containers as ct
 
@@ -76,16 +75,6 @@ __all__ = ['is_nparray',
            'is_size',
            'check_slices',
            'check']
-
-check_mapper = {
-               1 : '"is array"',
-               2 : '"no negative"',
-               3 : '"no nan"',
-               4 : '"int type"',
-               5 : '"float type"',
-               6 : '"complex type"',
-               7 : '"correct array size"'
-               }
 
 
 def is_nparray(arr, *args):
@@ -199,13 +188,13 @@ def is_size(arr, *args):
     return True
 
 
-function_mapper = { const.IS_NPARRAY : is_nparray,
-                    const.HAS_NO_NEGATIVE : has_no_negative,
-                    const.HAS_NO_NAN : has_no_nan,
-                    const.IS_INT : is_int,
-                    const.IS_FLOAT : is_float,
-                    const.IS_COMPLEX: is_complex,
-                    const.IS_SIZE : is_size
+function_mapper = { 'IS_NPARRAY' : is_nparray,
+                    'HAS_NO_NEGATIVE' : has_no_negative,
+                    'HAS_NO_NAN' : has_no_nan,
+                    'IS_INT' : is_int,
+                    'IS_FLOAT' : is_float,
+                    'IS_COMPLEX': is_complex,
+                    'IS_SIZE' : is_size
                    }
 
 
@@ -278,14 +267,14 @@ def check(arr, checks, data_tag='mydata', logger=None, axis=0):
         True if all functions are verified, False otherwise
 
     Example:
-    checks = {const.IS_NPARRAY:(),
-              const.HAS_NO_NEGATIVE:(),
-              const.HAS_NO_NAN:(),
-              const.IS_INT:(),
-              const.IS_SIZE:(2,3),
-              const.MEAN_IN_RANGE:(-1,5),
-              const.SAT_IN_RANGE:(1, 7)}
-    ck.check(arr, checks)
+    checks = {'IS_NPARRAY':(),
+              'HAS_NO_NEGATIVE':(),
+              'HAS_NO_NAN':(),
+              'IS_INT':(),
+              'IS_SIZE':(2,3),
+              'MEAN_IN_RANGE':(-1,5),
+              'SAT_IN_RANGE':(1, 7)}
+    censor.checks.check(arr, checks)
 
     """
     # if logger not provided, create default
@@ -298,10 +287,10 @@ def check(arr, checks, data_tag='mydata', logger=None, axis=0):
 
     verified = True
     for check in sorted(checks):
-        if check < 100:
+        if check in function_mapper:
             args = checks[check]
             res = function_mapper[check](arr, *args)
-            logger.info(data_tag + ' evaluated ' + check_mapper[check] + ' with result ' + str(res))
+            logger.info(data_tag + ' evaluated "' + check.lower() + '" with result ' + str(res))
             if not res:
                 verified = False
             del checks[check]
@@ -312,4 +301,5 @@ def check(arr, checks, data_tag='mydata', logger=None, axis=0):
 
     return verified
 
-
+def is_numpy():
+    return 1

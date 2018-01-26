@@ -55,7 +55,6 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 import numpy as np
-import censor.common.constants as const
 import censor.common.containers as ct
 
 __author__ = "Barbara Frosik"
@@ -64,7 +63,6 @@ __docformat__ = 'restructuredtext en'
 __all__ = ['sat_in_range',
            'mean_in_range',
            'mean_in_range']
-
 
 def sat_in_range(arr, args):
     """
@@ -115,8 +113,8 @@ def mean_in_range(arr, args):
 
 # maps the quality check ID to the function object
 function_mapper = {
-                     const.MEAN_IN_RANGE : mean_in_range,
-                     const.SAT_IN_RANGE : sat_in_range
+                     'MEAN_IN_RANGE' : mean_in_range,
+                     'SAT_IN_RANGE' : sat_in_range
                    }
 
 
@@ -153,5 +151,3 @@ def process_frame(data, index, resultsq, functions):
 
     results = ct.Results(index, failed, results_list)
     resultsq.put(results)
-
-

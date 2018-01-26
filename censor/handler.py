@@ -50,8 +50,8 @@
 This file handles verification and repair frame by frame.
 """
 
-#from __future__ import (absolute_import, division, print_function,
-#                        unicode_literals)
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
 
 from multiprocessing import Queue, Process
 import sys

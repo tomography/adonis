@@ -57,7 +57,6 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 import numpy as np
-import censor.common.constants as const
 import logging
 
 __author__ = "Barbara Frosik"
@@ -68,11 +67,6 @@ __all__ = ['replace_negative',
            'to_type',
            'replace']
 
-fix_mapper = {
-               1 : 'negative',
-               2 : 'nan',
-               3 : 'type' 
-             } 
 
 def replace_negative(arr, value):
     """
@@ -130,9 +124,9 @@ def to_type(arr, type):
     return arr.astype(type)
 
 
-function_mapper = { const.REPLACE_NEGATIVE : replace_negative,
-                    const.REPLACE_NAN : replace_nan,
-                    const.TO_TYPE : to_type
+function_mapper = { 'REPLACE_NEGATIVE' : replace_negative,
+                    'REPLACE_NAN' : replace_nan,
+                    'TO_TYPE' : to_type
                    }
 
 
@@ -170,10 +164,7 @@ def replace(arr, fixers, data_tag='mydata', logger=None):
         logger.addHandler(handler)
 
     for fix in sorted(fixers):
-        if fix < 100:
+        if fix in function_mapper:
             arr = function_mapper[fix](arr, fixers[fix])
-            logger.info(data_tag + ' repaired ' + fix_mapper[fix] )
+            logger.info(data_tag + ' repaired ' + fix.lower() )
     return arr
-
-
-

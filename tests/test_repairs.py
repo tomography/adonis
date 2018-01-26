@@ -53,7 +53,7 @@ from __future__ import (absolute_import, division, print_function,
 
 import logging
 import numpy as np
-import censor.common.constants as const
+#import censor.common.constants as const
 import censor.repairs as rp
 
 
@@ -72,7 +72,7 @@ data_tag = 'test'
 
 
 def test_replace_negative():
-    fixers = {const.REPLACE_NEGATIVE:(0)}
+    fixers = {'REPLACE_NEGATIVE':(0)}
     arr = rp.replace(arr_3D, fixers, data_tag, logger)
     assert not ((arr < 0).any())
     arr = rp.replace(arr_2D, fixers, data_tag, logger)
@@ -80,7 +80,7 @@ def test_replace_negative():
 
 
 def test_replace_nan():
-    fixers = {const.REPLACE_NAN: (0)}
+    fixers = {'REPLACE_NAN': (0)}
     arr = rp.replace(arr_3D, fixers, data_tag, logger)
     assert not (np.isnan(arr).any())
     arr = rp.replace(arr_2D, fixers, data_tag, logger)
@@ -88,7 +88,7 @@ def test_replace_nan():
 
 
 def test_to_type():
-    fixers = {const.TO_TYPE:(np.dtype(np.cfloat))}
+    fixers = {'TO_TYPE':(np.dtype(np.cfloat))}
     arr = rp.replace(arr_3D, fixers, data_tag, logger)
     assert arr.dtype is np.dtype(np.cfloat)
     arr = rp.replace(arr_2D, fixers, data_tag, logger)
