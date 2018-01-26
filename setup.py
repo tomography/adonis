@@ -6,8 +6,7 @@ from setuptools import setup, Extension, find_packages
 setup(
     name='censor',
     author='Barbara Frosik, Doga Gursoy',
-    packages=['censor',
-             'censor.common'],
+    packages=find_packages(),
     version=open('VERSION').read().strip(),
     description = 'Unit-testing for scientific data.',
     license='BSD-3',
