@@ -62,7 +62,7 @@ __copyright__ = "Copyright (c), UChicago Argonne, LLC."
 __docformat__ = 'restructuredtext en'
 __all__ = ['sat_in_range',
            'mean_in_range',
-           'mean_in_range']
+           'process_frame']
 
 def sat_in_range(arr, args):
     """

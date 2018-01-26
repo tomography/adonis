@@ -126,5 +126,3 @@ def handle_data(dataq, checks, returnq, data_tag, logger):
             num_processes -= 1
 
     returnq.put(verified)
-
-

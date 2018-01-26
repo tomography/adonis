@@ -287,10 +287,10 @@ def check(arr, checks, data_tag='mydata', logger=None, axis=0):
 
     verified = True
     for check in sorted(checks):
-        if check in function_mapper:
+        if check < 100:
             args = checks[check]
             res = function_mapper[check](arr, *args)
-            logger.info(data_tag + ' evaluated "' + check.lower() + '" with result ' + str(res))
+            logger.info(data_tag + ' evaluated ' + check.lower() + ' with result ' + str(res))
             if not res:
                 verified = False
             del checks[check]
