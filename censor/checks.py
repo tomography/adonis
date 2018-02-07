@@ -62,6 +62,8 @@ from multiprocessing import Queue, Process
 import logging
 import censor.handler as handler
 import censor.common.containers as ct
+import censor.frame as framer
+import time
 
 __author__ = "Barbara Frosik"
 __copyright__ = "Copyright (c), UChicago Argonne, LLC."
@@ -228,16 +230,60 @@ def check_slices(arr, checks, data_tag, logger, axis):
 
     arr = np.moveaxis(arr,axis, 0)
 
+    start_time = time.time()
     for num_slice in range(arr.shape[0]):
         slice = arr[num_slice,:,:]
         dataq.put(ct.Data(ct.Data.DATA_STATUS_DATA, slice))
     dataq.put(ct.Data(ct.Data.DATA_STATUS_END))
-
+    end_time = time.time()
+    logger.info("evaluated " + str(num_slice+1) + " frames in " + str(end_time-start_time) + " sec")
     result = returnq.get()
     return result
 
 
-def check(arr, checks, data_tag='mydata', logger=None, axis=0):
+def check_slices_seq(arr, checks, data_tag, logger, axis):
+    """
+    This function provides data validation using functions validating frame by frame.
+
+    It runs in one process, sequentially.
+
+    Parameters
+    ----------
+    arr : ndarray
+        an evaluated array
+    checks : dict
+        contains functions ids as keys, and corresponding tuple of parameters as value
+    data_tag : str
+        string identifying the data
+    logger : logger instance
+        logger used to log events
+    Returns
+    -------
+        True if all functions are verified, False otherwise
+    """
+    if len(arr.shape) == 2:
+        arr = np.expand_dims(arr, axis)
+
+    arr = np.moveaxis(arr,axis, 0)
+
+    result = True
+    start_time = time.time()
+    for num_slice in range(arr.shape[0]):
+        slice = arr[num_slice,:,:]
+        slice_results = framer.process_frame_seq(ct.Data(ct.Data.DATA_STATUS_DATA, slice), num_slice, checks)
+        for result in slice_results.results:
+            logger.info(data_tag + ' evaluated frame #' + str(num_slice) + ' ' + result.ver_id +
+                        ' with result ' + str(result.res))
+        if slice_results.failed:
+            result = False
+
+    end_time = time.time()
+    logger.info("evaluated " + str(num_slice+1) + " frames in " + str(end_time-start_time) + " sec")
+
+    return result
+
+
+def check(arr, checks, data_tag='mydata', logger=None, axis=0, par='p'):
     """
     This function provides data validation.
 
@@ -262,6 +308,9 @@ def check(arr, checks, data_tag='mydata', logger=None, axis=0):
         logger used to log events
     axis : int
         an axis by which the frames are ordered, only used when "frame" functions are requested
+    par : str
+        a string indicating whether use sequential processing or parallel, default is parallel
+
     Returns
     -------
         True if all functions are verified, False otherwise
@@ -295,7 +344,10 @@ def check(arr, checks, data_tag='mydata', logger=None, axis=0):
                 verified = False
             del checks[check]
     if len(checks) > 0:
-        res = check_slices(arr, checks, data_tag, logger, axis)
+        if par == 's':
+            res = check_slices_seq(arr, checks, data_tag, logger, axis)
+        else:
+            res = check_slices(arr, checks, data_tag, logger, axis)
         if not res:
             verified = False
 

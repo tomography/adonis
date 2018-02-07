@@ -151,3 +151,37 @@ def process_frame(data, index, resultsq, functions):
 
     results = ct.Results(index, failed, results_list)
     resultsq.put(results)
+
+def process_frame_seq(data, index, functions):
+    """
+    This method dispatches validation/repair functions that are included in the functions dictionary.
+
+    It calls a function defined in the functions dictionary, using the dictionary value as an argument.
+    The Results objects returned by each function are encapsulated in Results object and enqueued in a
+    results queue.
+
+    Parameters
+    ----------
+    data : 2D array
+        a frame
+    index : int
+        a frame index
+    resultsq : queue
+        a queue that will deliver results to parent process
+    functions : dict
+        a dictionary containing functins ids, and tuple values, the tuple containing positional arguments.
+    Returns
+    -------
+        none
+    """
+    results_list = []
+    failed = False
+    for function_id in functions:
+        function = function_mapper[function_id]
+        result = function(data.slice, functions[function_id])
+        results_list.append(result)
+        if not result.res:
+            failed = True
+
+    results = ct.Results(index, failed, results_list)
+    return results
