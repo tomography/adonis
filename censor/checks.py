@@ -230,15 +230,12 @@ def check_slices(arr, checks, data_tag, logger, axis):
 
     arr = np.moveaxis(arr,axis, 0)
 
-    start_time = time.time()
     for num_slice in range(arr.shape[0]):
         slice = arr[num_slice,:,:]
         dataq.put(ct.Data(ct.Data.DATA_STATUS_DATA, slice))
     dataq.put(ct.Data(ct.Data.DATA_STATUS_END))
-    end_time = time.time()
-    logger.info("evaluated " + str(num_slice+1) + " frames in " + str(end_time-start_time) + " sec")
     result = returnq.get()
-    return result
+    return result, num_slice+1
 
 
 def check_slices_seq(arr, checks, data_tag, logger, axis):
@@ -267,7 +264,6 @@ def check_slices_seq(arr, checks, data_tag, logger, axis):
     arr = np.moveaxis(arr,axis, 0)
 
     result = True
-    start_time = time.time()
     for num_slice in range(arr.shape[0]):
         slice = arr[num_slice,:,:]
         slice_results = framer.process_frame_seq(ct.Data(ct.Data.DATA_STATUS_DATA, slice), num_slice, checks)
@@ -277,10 +273,7 @@ def check_slices_seq(arr, checks, data_tag, logger, axis):
         if slice_results.failed:
             result = False
 
-    end_time = time.time()
-    logger.info("evaluated " + str(num_slice+1) + " frames in " + str(end_time-start_time) + " sec")
-
-    return result
+    return result, num_slice+1
 
 
 def check(arr, checks, data_tag='mydata', logger=None, axis=0, par='p'):
@@ -344,11 +337,15 @@ def check(arr, checks, data_tag='mydata', logger=None, axis=0, par='p'):
                 verified = False
             del checks[check]
     if len(checks) > 0:
+        start_time = time.time()
         if par == 's':
-            res = check_slices_seq(arr, checks, data_tag, logger, axis)
+            res, slices = check_slices_seq(arr, checks, data_tag, logger, axis)
         else:
-            res = check_slices(arr, checks, data_tag, logger, axis)
+            res, slices = check_slices(arr, checks, data_tag, logger, axis)
         if not res:
             verified = False
+
+        end_time = time.time()
+        logger.info("evaluated " + str(slices) + " frames in " + str(end_time-start_time) + " sec")
 
     return verified
